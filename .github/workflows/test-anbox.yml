@@ -1,0 +1,39 @@
+name: Run Anbox Cloud Integration Tests
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch: # Esto te permite ejecutarlo manualmente desde la pestaña "Actions"
+
+jobs:
+  run-tests:
+    runs-on: ubuntu-24.04
+    steps:
+    - name: Setup Anbox Cloud
+      uses: canonical/anbox-cloud-github-action@main
+      with:
+        # Puedes cambiar la versión del canal si lo necesitas
+        channel: 1.23/stable
+        # IMPORTANTE: Necesitas configurar este secreto en tu repositorio
+        # Ve a Settings > Secrets and variables > Actions > New repository secret
+        # y crea uno llamado UBUNTU_PRO_TOKEN
+        ubuntu-pro-token: ${{ secrets.UBUNTU_PRO_TOKEN }}
+
+    - name: Create Android instance
+      id: create-instance
+      run: |
+        set -x
+        id="$(amc launch -r -s adb jammy:android13:amd64)"
+        amc wait -c status=running "$id"
+        echo "id=$id" >> "$GITHUB_OUTPUT"
+
+    - name: Access Android over ADB
+      run: |
+        sudo apt install -y adb
+        id=${{ steps.create-instance.outputs.id }}
+        addr="$(amc show "$id" --format=json | jq -r .network.address)"
+        adb connect "$addr":5559
+
+    - name: Run tests
+      run: |
+        test "$(adb shell getprop ro.product.model)" = Anbox
