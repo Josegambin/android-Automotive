@@ -3,6 +3,7 @@ description: |
   Setup Anbox Cloud on a Github runner for running integration tests against
   containerized or virtualized Android instances.
 
+  See https://anbox-cloud.io/docs for more details
 inputs:
   channel:
     default: latest/stable
